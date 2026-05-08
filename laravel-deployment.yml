@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hiresphere-laravel
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hiresphere-laravel
+  template:
+    metadata:
+      labels:
+        app: hiresphere-laravel
+    spec:
+      containers:
+        - name: hiresphere-laravel
+          image: 808765744240.dkr.ecr.ap-southeast-1.amazonaws.com/hiresphere/laravel-api:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: APP_KEY
+              value: "base64:bgzMUMugmgMk/2G6XhLcx2am6zTbPQy7TM1frY8uHIA="
+            - name: APP_ENV
+              value: production
+            - name: APP_DEBUG
+              value: "false"
+            - name: APP_URL
+              value: "https://d149igewvmenpk.cloudfront.net"
+            - name: FRONTEND_URL_PATTERN
+              value: "^https://[a-z0-9.-]+\\.amplifyapp\\.com$"
+            - name: AWS_DEFAULT_REGION
+              value: ap-southeast-1
+            - name: AWS_COGNITO_REGION
+              value: ap-southeast-1
+            - name: AWS_COGNITO_USER_POOL_ID
+              value: ap-southeast-1_DSUHtQ9cq
+            - name: AWS_COGNITO_APP_CLIENT_ID
+              value: 3rifbmr9ft7k5avn4ntcsr1mso
+            - name: DB_CONNECTION
+              value: mysql
+            - name: DB_HOST
+              value: hiresphere-dev-mysql.crwawa4eotwl.ap-southeast-1.rds.amazonaws.com
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: hiresphere
+            - name: DB_USERNAME
+              value: admin
+            - name: DB_PASSWORD
+              value: StrongPassword123
+            - name: AWS_BUCKET
+              value: hiresphere-dev-uploads-808765744240
+            - name: SESSION_DRIVER
+              value: file
+            - name: CACHE_STORE
+              value: file
+            - name: LOG_CHANNEL
+              value: stderr
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hiresphere-laravel-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: hiresphere-laravel
+  ports:
+    - port: 80
+      targetPort: 80

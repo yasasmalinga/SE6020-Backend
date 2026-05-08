@@ -1,0 +1,72 @@
+name: Deploy Laravel Backend to EKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: hiresphere/laravel-api
+  EKS_CLUSTER_NAME: hiresphere-dev-eks
+  K8S_DEPLOYMENT_NAME: hiresphere-laravel
+  K8S_CONTAINER_NAME: hiresphere-laravel
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          ECR_URI=808765744240.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}
+
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG
+
+          echo "IMAGE_URI=$ECR_URI:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Deploy to Kubernetes
+        env:
+          BACKEND_API_URL: ${{ vars.BACKEND_API_URL }}
+          FRONTEND_URL_PATTERN: ${{ vars.FRONTEND_URL_PATTERN || '^https://[a-z0-9.-]+\\.amplifyapp\\.com$' }}
+          COGNITO_REGION: ${{ vars.COGNITO_REGION || env.AWS_REGION }}
+          COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          COGNITO_APP_CLIENT_ID: ${{ vars.COGNITO_APP_CLIENT_ID }}
+        run: |
+          : "${BACKEND_API_URL:?Set the BACKEND_API_URL repository variable to the CloudFront API URL}"
+          : "${COGNITO_USER_POOL_ID:?Set the COGNITO_USER_POOL_ID repository variable}"
+          : "${COGNITO_APP_CLIENT_ID:?Set the COGNITO_APP_CLIENT_ID repository variable}"
+
+          kubectl set image deployment/${{ env.K8S_DEPLOYMENT_NAME }} \
+            ${{ env.K8S_CONTAINER_NAME }}=${{ env.IMAGE_URI }}
+
+          kubectl set env deployment/${{ env.K8S_DEPLOYMENT_NAME }} \
+            APP_URL="$BACKEND_API_URL" \
+            FRONTEND_URL_PATTERN="$FRONTEND_URL_PATTERN" \
+            AWS_DEFAULT_REGION="$COGNITO_REGION" \
+            AWS_COGNITO_REGION="$COGNITO_REGION" \
+            AWS_COGNITO_USER_POOL_ID="$COGNITO_USER_POOL_ID" \
+            AWS_COGNITO_APP_CLIENT_ID="$COGNITO_APP_CLIENT_ID"
+
+          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT_NAME }}

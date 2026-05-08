@@ -1,0 +1,13 @@
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.git
+.idea
+*.md
+tests
+phpunit.xml
+.dockerignore

@@ -1,0 +1,56 @@
+# Ingress for API gateway-style path routing across domain services
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hiresphere-gateway
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # For AWS ALB: kubernetes.io/ingress.class: alb
+spec:
+  rules:
+    - host: api.hiresphere.local
+      http:
+        paths:
+          - path: /api/users
+            pathType: Prefix
+            backend:
+              service:
+                name: hiresphere-users
+                port:
+                  number: 80
+          - path: /api/scheduling
+            pathType: Prefix
+            backend:
+              service:
+                name: hiresphere-scheduling
+                port:
+                  number: 80
+          - path: /api/interaction
+            pathType: Prefix
+            backend:
+              service:
+                name: hiresphere-interaction
+                port:
+                  number: 80
+          - path: /api/payments
+            pathType: Prefix
+            backend:
+              service:
+                name: hiresphere-payments
+                port:
+                  number: 80
+          - path: /api/realtime
+            pathType: Prefix
+            backend:
+              service:
+                name: hiresphere-realtime
+                port:
+                  number: 80
+          # Backward-compatible routes for existing frontend paths (/api/bookings etc.)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hiresphere-users
+                port:
+                  number: 80
