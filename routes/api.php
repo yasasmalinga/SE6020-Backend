@@ -13,7 +13,7 @@ use App\Http\Controllers\Api\RealtimeSessionController;
 use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\AuthController;
 
- 
+
 Route::middleware(['service.domain'])->group(function (): void {
     Route::get('/health', fn () => response()->json(['status' => 'ok']))->name('api.health');
 
