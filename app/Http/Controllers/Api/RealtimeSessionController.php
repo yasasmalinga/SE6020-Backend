@@ -7,11 +7,49 @@ use App\Models\Booking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class RealtimeSessionController extends Controller
 {
+    public function iceServers(): JsonResponse
+    {
+        $accountSid = (string) config('services.twilio.account_sid');
+        $authToken = (string) config('services.twilio.auth_token');
+
+        if ($accountSid === '' || $authToken === '') {
+            return response()->json([
+                'ice_servers' => [
+                    ['urls' => 'stun:stun.l.google.com:19302'],
+                    ['urls' => 'stun:stun1.l.google.com:19302'],
+                ],
+                'source' => 'default',
+            ]);
+        }
+
+        $response = Http::withBasicAuth($accountSid, $authToken)
+            ->asForm()
+            ->post("https://api.twilio.com/2010-04-01/Accounts/{$accountSid}/Tokens.json");
+
+        if (! $response->successful()) {
+            return response()->json([
+                'message' => 'Unable to fetch Twilio TURN credentials.',
+                'ice_servers' => [
+                    ['urls' => 'stun:stun.l.google.com:19302'],
+                ],
+                'source' => 'fallback',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $iceServers = $response->json('ice_servers');
+
+        return response()->json([
+            'ice_servers' => is_array($iceServers) ? $iceServers : [],
+            'source' => 'twilio',
+        ]);
+    }
+
     public function create(Request $request): JsonResponse
     {
         $validated = $request->validate([

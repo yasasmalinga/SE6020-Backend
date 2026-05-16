@@ -77,6 +77,7 @@ Route::middleware(['service.domain'])->group(function (): void {
         Route::post('/payments/initiate', [PaymentController::class, 'initiate'])->name('api.interaction.payments.initiate');
         Route::patch('/payments/{paymentId}/status', [PaymentController::class, 'updateStatus'])->name('api.interaction.payments.status');
 
+        Route::get('/realtime/ice-servers', [RealtimeSessionController::class, 'iceServers'])->name('api.interaction.realtime.ice-servers');
         Route::post('/realtime/sessions', [RealtimeSessionController::class, 'create'])->name('api.interaction.realtime.create');
         Route::get('/realtime/sessions/{sessionId}', [RealtimeSessionController::class, 'show'])->name('api.interaction.realtime.show');
         Route::post('/realtime/sessions/{sessionId}/offer', [RealtimeSessionController::class, 'offer'])->name('api.interaction.realtime.offer');
